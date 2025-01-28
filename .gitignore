@@ -1,0 +1,6 @@
+# Folders
+env
+__pycache__
+
+# Files
+app_secrets.py
