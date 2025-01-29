@@ -49,12 +49,14 @@ async def get_project(project_id: str, user: User = Depends(get_current_user)):
             detail="Project not found."
         )
     
+    modules = list(map(str, project.modules))
+    
     return ProjectResponse(
         id=str(project.id),
         user_id=str(project.user_id),
         name=project.name,
         description=project.description,
-        modules=project.modules
+        modules=modules
     )
 
 @project_router.get("/list", status_code=status.HTTP_200_OK, response_model=List[ProjectResponse])
@@ -76,7 +78,7 @@ async def list_projects(user: User = Depends(get_current_user)):
             user_id=str(project.user_id),
             name=project.name,
             description=project.description,
-            modules=project.modules,
+            modules=list(map(str, project.modules)),
         )
         for project in projects
     ]

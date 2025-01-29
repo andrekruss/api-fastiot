@@ -5,9 +5,9 @@ from main import app
 
 @pytest.mark.asyncio
 async def test_create_user(test_db):
-    username = "testuser"
-    email = "testmail@mail.com"
-    password = "testpass123"
+    username = "myuser"
+    email = "myuser@mail.com"
+    password = "pass123"
     create_user_data = {
         "username": username,
         "email": email,
@@ -21,4 +21,19 @@ async def test_create_user(test_db):
     assert response.status_code == 201
     assert response.json()["username"] == username
     assert response.json()["email"] == email
-    print(response.json())
+
+@pytest.mark.asyncio
+async def test_me(test_db, test_token):
+
+    headers = {
+        "Authorization": f"Bearer {test_token['access_token']}"
+    }
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as ac:
+        response = await ac.get("/users/me", headers=headers)
+
+    assert response.status_code == 200
+
