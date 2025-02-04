@@ -4,7 +4,7 @@ from httpx import ASGITransport, AsyncClient
 from main import app
 
 @pytest.mark.asyncio
-async def test_generate_token_with_username(test_db, test_user):
+async def test_generate_token_with_username(test_user):
     
     login_request = {
         "username": test_user["username"],
@@ -21,7 +21,7 @@ async def test_generate_token_with_username(test_db, test_user):
     assert "access_token" in response.json()
 
 @pytest.mark.asyncio
-async def test_generate_token_with_email(test_db, test_user):
+async def test_generate_token_with_email(test_user):
     
     login_request = {
         "username": test_user["email"],

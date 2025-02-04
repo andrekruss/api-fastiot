@@ -23,7 +23,7 @@ async def test_create_user(test_db):
     assert response.json()["email"] == email
 
 @pytest.mark.asyncio
-async def test_me(test_db, test_token):
+async def test_me(test_token):
 
     headers = {
         "Authorization": f"Bearer {test_token['access_token']}"

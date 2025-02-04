@@ -1,9 +1,12 @@
 import logging
-from httpx import ASGITransport, AsyncClient
+from bson import ObjectId
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 
+from api_responses.auth_responses import TokenResponse
+from api_responses.project_responses import ProjectResponse
+from api_responses.user_responses import UserResponse
 from app_secrets import TEST_DATABASE_NAME, TEST_DATABASE_URL
 from database.models.user_model import User
 from database.models.project_model import Project
@@ -24,12 +27,12 @@ async def test_db():
         document_models=[User, Project, Module]
     )
 
-    collections = await database.list_collection_names()  # Aguarda a lista de coleções
+    yield database
+
+    collections = await database.list_collection_names()  
     for collection in collections:
         collection_instance = database[collection]
-        await collection_instance.delete_many({})  # Limpa os documentos
-
-    yield database
+        await collection_instance.delete_many({})  
 
     client.close()
 
@@ -50,9 +53,11 @@ async def test_user(test_db):
         await user.insert()
 
     return {
-        "username": username,
-        "email": email,
-        "password": password
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "password": password,
+        "projects": user.projects
     }
 
 @pytest_asyncio.fixture(scope="function")
@@ -64,7 +69,33 @@ async def test_token(test_db, test_user):
 
     if user and verify_password(test_user["password"], user.password):
         jwt_token = generate_jwt_token({"sub": user.email})
-        return {"access_token": jwt_token}
+        return {
+            "access_token": jwt_token
+        }
+    
+@pytest_asyncio.fixture(scope="function")
+async def test_project(test_user):
+
+    test_project_name = "project"
+    test_project_description = "my project description"
+
+    project = Project(
+        user_id=ObjectId(test_user["id"]),
+        name=test_project_name,
+        description=test_project_description
+    )
+
+    await project.insert()
+
+    return {
+        "id": project.id,
+        "user_id": project.user_id,
+        "name": project.name,
+        "description": project.description,
+        "modules": project.modules
+    }
+
+
 
 
         
