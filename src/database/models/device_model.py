@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from beanie import Document, PydanticObjectId
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 class DeviceType(str, Enum):
     SENSOR = "sensor"
@@ -16,8 +16,4 @@ class Device(Document):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    class Settings:
-        name = "devices"
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(collection="devices", arbitrary_types_allowed=True)
