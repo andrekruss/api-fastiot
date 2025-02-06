@@ -9,6 +9,7 @@ class DeviceType(str, Enum):
     ACTUATOR = "actuator"
 
 class Device(Document):
+    user_id: PydanticObjectId
     module_id: PydanticObjectId
     name: str = Field(max_length=50)
     description: Optional[str] = Field(max_length=200)

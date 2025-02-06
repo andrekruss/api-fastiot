@@ -1,14 +1,13 @@
-from beanie import Document, before_event, Replace
-from bson import ObjectId
+from beanie import Document, PydanticObjectId, before_event, Replace
 from pydantic import ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime, timezone
 
 class Project(Document):
-    user_id: ObjectId
+    user_id: PydanticObjectId
     name: str = Field(max_length=50)
     description: Optional[str] = Field(max_length=200)
-    modules: List[ObjectId] = Field(default_factory=list)
+    modules: List[PydanticObjectId] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
