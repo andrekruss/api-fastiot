@@ -5,3 +5,5 @@ class CreateUserRequest(BaseModel):
     email: str
     password: str
 
+class UpdateUserRequest(BaseModel):
+    pass

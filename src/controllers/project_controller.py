@@ -8,83 +8,60 @@ from api_requests.project_requests import CreateProjectRequest, PatchProjectRequ
 from api_responses.project_responses import ProjectResponse
 from database.models.project_model import Project
 from database.models.user_model import User
+from database.repositories.project_repository import ProjectRepository
+from exceptions.project_exceptions import ProjectNotFoundException, UpdateProjectException
 from utils.auth import get_current_user
 from utils.helper_functions import validate_object_id
 
+project_repository = ProjectRepository(Project)
 project_router = APIRouter(prefix="/projects", tags=["projects"])
 
 @project_router.post("/create", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)
 async def create_project(create_project_request: CreateProjectRequest, user: User = Depends(get_current_user)):
 
-    new_project = Project(
-        user_id=user.id,
-        name=create_project_request.name,
-        description=create_project_request.description
-    )
-    await new_project.insert()
-    return ProjectResponse(
-        id=str(new_project.id),
-        name=new_project.name,
-        description=new_project.description
-    )
+    new_project = await project_repository.create(user.id, create_project_request)
+    return new_project
 
 @project_router.get("/get/{project_id}", status_code=status.HTTP_200_OK, response_model=ProjectResponse)
 async def get_project(project_id: str, user: User = Depends(get_current_user)):
 
-    project_object_id = validate_object_id(project_id)
-
-    project = await Project.find_one(
-        Project.id == project_object_id,
-        Project.user_id == user.id
-    )
-
-    if not project:
+    try:
+        project_object_id = validate_object_id(project_id)
+        project = await project_repository.get_by_id(user.id, project_object_id)
+        return project
+    except ProjectNotFoundException as err:
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(err)
+            )
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error."
         )
-    
-    modules = list(map(str, project.modules))
-    
-    return ProjectResponse(
-        id=str(project.id),
-        name=project.name,
-        description=project.description,
-        modules=modules
-    )
+
 
 @project_router.get("/list", status_code=status.HTTP_200_OK, response_model=List[ProjectResponse])
 async def list_projects(user: User = Depends(get_current_user)):
-
-    projects = await Project.find({"user_id": user.id}).to_list()
-
-    return [
-        ProjectResponse(
-            id=str(project.id),
-            name=project.name,
-            description=project.description,
-            modules=list(map(str, project.modules)),
-        )
-        for project in projects
-    ]
+    return await project_repository.list(user.id)
 
 @project_router.delete("/delete/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete(project_id: str, user: User = Depends(get_current_user)):
 
-    project_object_id = validate_object_id(project_id)
-
-    project = await Project.find_one(
-        Project.id == project_object_id,
-        Project.user_id == user.id
-    )
-
-    if not project:
+    try:
+        project_object_id = validate_object_id(project_id)
+        await project_repository.delete(user.id, project_object_id)
+    except ProjectNotFoundException as err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied."
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(err)
+            )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error."
         )
-    
-    await project.delete()
 
 @project_router.patch("/patch/{project_id}", status_code=status.HTTP_200_OK)
 async def patch(
@@ -93,32 +70,27 @@ async def patch(
     user: User = Depends(get_current_user)
 ):
     
-    project_object_id = validate_object_id(project_id)
-
-    project = await Project.find_one(
-        Project.id == project_object_id,
-        Project.user_id == user.id
-    )
-
-    if not project:
+    try:
+        project_object_id = validate_object_id(project_id)
+        project = await project_repository.update(
+            user.id,
+            project_object_id,
+            patch_project_request
+        )
+        return project
+    except ProjectNotFoundException as err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found or access denied."
+            detail=str(err)
         )
-    
-    update_data = {key: value for key, value in patch_project_request.model_dump(exclude_unset=True).items()}
-
-    if update_data:
-        await project.update({"$set": update_data})
-    else:
+    except UpdateProjectException as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No valid fields provided for update."
+            detail=str(err)
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error."
         )
     
-    return ProjectResponse(
-        id=str(project.id),
-        name=project.name,
-        description=project.description,
-        modules=project.modules
-    )
