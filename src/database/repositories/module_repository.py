@@ -2,6 +2,7 @@ from typing import List
 from beanie import Document, PydanticObjectId
 from api_requests.module_requests import CreateModuleRequest, PatchModuleRequest
 from api_responses.module_responses import ModuleResponse
+from database.models.device_model import Device
 from database.models.module_model import Module
 from database.models.project_model import Project
 from database.repositories.base_repository import BaseRepository
@@ -125,6 +126,17 @@ class ModuleRepository(BaseRepository):
         if not module or module_id not in project.modules:
             raise ModuleNotFoundException("Module not found or unauthorized.")
         
+        devices = await Device.find(
+            Device.user_id == user_id,
+            Device.module_id == module.id
+        ).to_list()
+
+        for device in devices:
+            await Device.delete(
+                Device.user_id == user_id,
+                Device.id == device.id
+            )
+        
         await module.delete()
         project.modules.remove(module_id)
         await project.save()
@@ -158,6 +170,7 @@ class ModuleRepository(BaseRepository):
         ]
 
         return modules_response
+    
 
         
 

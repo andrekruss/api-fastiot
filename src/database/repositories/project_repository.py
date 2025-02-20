@@ -2,6 +2,8 @@ from typing import List
 from beanie import PydanticObjectId
 from api_requests.project_requests import CreateProjectRequest, PatchProjectRequest
 from api_responses.project_responses import ProjectResponse
+from database.models.device_model import Device
+from database.models.module_model import Module
 from database.models.project_model import Project
 from database.repositories.base_repository import BaseRepository
 from exceptions.project_exceptions import ProjectNotFoundException, UpdateProjectException
@@ -104,7 +106,25 @@ class ProjectRepository(BaseRepository):
         if not project:
             raise ProjectNotFoundException("Project not found.")
         
+        modules = await Module.find(
+            Module.user_id == user_id,
+            Module.project_id == project_id
+        ).to_list()
+
+        for module in modules:
+            await Device.delete_many(
+                Device.module_id == module.id
+            )
+
+        await Module.delete_many(
+            Module.user_id == user_id,
+            Module.project_id == project_id
+        )
+        
         await project.delete()
+
+
+
 
 
 

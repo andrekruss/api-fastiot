@@ -1,8 +1,12 @@
 from beanie import Document, PydanticObjectId
 from api_requests.user_requests import CreateUserRequest, UpdateUserRequest
 from api_responses.user_responses import UserResponse
+from database.models.device_model import Device
+from database.models.project_model import Project
 from database.models.user_model import User
+from database.models.module_model import Module
 from database.repositories.base_repository import BaseRepository
+from exceptions.user_exceptions import UserNotFoundException
 from utils.hash import hash_password
 
 class UserRepository(BaseRepository):
@@ -11,7 +15,7 @@ class UserRepository(BaseRepository):
     def __init__(self, user_model: User):
         self.user_model = user_model
 
-    async def get_by_id(self, user_id, obj_id):
+    async def get_by_id(self, user_id: PydanticObjectId, obj_id: PydanticObjectId):
         raise NotImplementedError("get_by_id method is not implemented in UserRepository class.")
     
     async def get_by_login(self, login: str) -> UserResponse:
@@ -80,7 +84,24 @@ class UserRepository(BaseRepository):
         raise NotImplementedError("update method is not implemented in UserRepository class.")
     
     async def delete(self, user_id, obj_id):
-        raise NotImplementedError("delete method is not implemented in UserRepository class.")
+        pass
+
+    async def delete(self, user_id: PydanticObjectId):
+
+        user = await self.user_model.find_one(
+            self.user_model.id == user_id
+        )
+
+        if not user:
+            raise UserNotFoundException()
+
+        await Project.find(Project.user_id == user_id).delete()
+        await Module.find(Module.user_id == user_id).delete()
+        await Device.find(Device.user_id == user_id).delete()
+        await user.delete()
+
+
+
     
 
     
