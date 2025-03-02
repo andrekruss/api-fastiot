@@ -1,6 +1,6 @@
-from beanie import Document, PydanticObjectId
-from api_requests.user_requests import CreateUserRequest, UpdateUserRequest
-from api_responses.user_responses import UserResponse
+from beanie import PydanticObjectId
+from api_requests.user_requests import CreateUserRequest
+from api_responses.user_responses import LoginUserResponse, UserResponse
 from database.models.device_model import Device
 from database.models.project_model import Project
 from database.models.user_model import User
@@ -18,7 +18,7 @@ class UserRepository(BaseRepository):
     async def get_by_id(self, user_id: PydanticObjectId, obj_id: PydanticObjectId):
         raise NotImplementedError("get_by_id method is not implemented in UserRepository class.")
     
-    async def get_by_login(self, login: str) -> UserResponse:
+    async def get_by_login(self, login: str) -> LoginUserResponse:
 
         user = await self.user_model.find_one(
             {"$or": [{"username": login}, {"email": login} ]}
@@ -27,14 +27,14 @@ class UserRepository(BaseRepository):
         if not user:
             return None
         
-        return UserResponse(
+        return LoginUserResponse(
             id=str(user.id),
             username=user.username,
             email=user.email,
             password=user.password
         )
 
-    async def get_by_email(self, email: str) -> UserResponse:
+    async def get_by_email(self, email: str) -> LoginUserResponse:
 
         user = await self.user_model.find_one(
             self.user_model.email == email
@@ -43,14 +43,14 @@ class UserRepository(BaseRepository):
         if not user:
             return None
 
-        return UserResponse(
+        return LoginUserResponse(
             id=str(user.id),
             username=user.username,
             email=user.email,
             password=user.password
         )
     
-    async def get_by_username(self, username: str) -> UserResponse:
+    async def get_by_username(self, username: str) -> LoginUserResponse:
 
         user = await self.user_model.find_one(
             self.user_model.username == username
@@ -59,7 +59,7 @@ class UserRepository(BaseRepository):
         if not user:
             return None
 
-        return UserResponse(
+        return LoginUserResponse(
             id=str(user.id),
             username=user.username,
             email=user.email,
@@ -67,6 +67,9 @@ class UserRepository(BaseRepository):
         )
     
     async def create(self, user_id: PydanticObjectId, create_user_request: CreateUserRequest) -> UserResponse:
+        pass
+    
+    async def create(self, create_user_request: CreateUserRequest) -> UserResponse:
 
         user = self.user_model(
             username=create_user_request.username,

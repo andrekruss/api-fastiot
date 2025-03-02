@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 
-from database.models.device_model import DeviceType
+from enums.data_type import DataType
+from enums.device_type import DeviceType
 
 class CreateDeviceRequest(BaseModel):
     name: str
     description: Optional[str]
     device_type: DeviceType
+    data_types: List[DataType]

@@ -1,14 +1,10 @@
 from typing import List
-from beanie import PydanticObjectId
-from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi import status
 
 from api_requests.device_requests import CreateDeviceRequest
 from api_responses.device_responses import DeviceResponse
 from database.models.device_model import Device
-from database.models.module_model import Module
-from database.models.project_model import Project
 from database.models.user_model import User
 from database.repositories.device_repository import DeviceRepository
 from exceptions.device_exceptions import DeviceNotFoundException

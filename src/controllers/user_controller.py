@@ -31,12 +31,7 @@ async def create_user(create_user_request: CreateUserRequest = Body(...)):
         )
 
     new_user = await user_repository.create(
-        None, 
-        User(
-            username=create_user_request.username,
-            email=create_user_request.email,
-            password=hash_password(create_user_request.password),
-        )
+        create_user_request=create_user_request
     )
 
     return new_user

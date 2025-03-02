@@ -22,4 +22,4 @@ async def login(login_form_data: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect user or password.")
     
     jwt_token = generate_jwt_token({"sub": user.email})
-    return TokenResponse(access_token=jwt_token)
+    return TokenResponse(access_token=jwt_token, token_type="bearer")

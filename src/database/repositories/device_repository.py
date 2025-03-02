@@ -37,7 +37,8 @@ class DeviceRepository(BaseRepository):
             user_id=user_id,
             name=create_device_request.name,
             description=create_device_request.description,
-            device_type=create_device_request.device_type
+            device_type=create_device_request.device_type,
+            data_types=create_device_request.data_types
         )
         
         await device.insert()
@@ -48,7 +49,8 @@ class DeviceRepository(BaseRepository):
             id=str(device.id),
             name=device.name,
             description=device.description,
-            device_type=device.device_type
+            device_type=device.device_type,
+            data_types=device.data_types
         )
 
     async def get_by_id(self, user_id, obj_id):
@@ -81,7 +83,8 @@ class DeviceRepository(BaseRepository):
             id=str(device.id),
             name=device.name,
             description=device.description,
-            device_type=device.device_type
+            device_type=device.device_type,
+            data_types=device.data_types
         )
     
     async def list(
@@ -108,7 +111,8 @@ class DeviceRepository(BaseRepository):
                 id=str(device.id),
                 name=device.name,
                 description=device.description,
-                device_type=device.device_type
+                device_type=device.device_type,
+                data_types=device.data_types
             )
             for device in devices
         ]

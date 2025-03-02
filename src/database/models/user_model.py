@@ -7,11 +7,11 @@ class User(Document):
     username: str = Field(max_length=30, json_schema_extra={"unique": True})
     email: EmailStr = Field(json_schema_extra={"unique": True})
     password: str = Field(max_length=256)  
-    projects: List[str] = Field(default_factory=list)  # projects ids
+    projects: List[str] = Field(default_factory=list)  
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    model_config = ConfigDict(collection="users", arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @before_event(Replace)
     def update_timestamp(self):
