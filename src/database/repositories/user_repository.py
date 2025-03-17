@@ -2,30 +2,63 @@ from beanie import PydanticObjectId
 from api_requests.user_requests import CreateUserRequest
 from api_responses.user_responses import LoginUserResponse, UserResponse
 from database.models.device_model import Device
-from database.models.project_model import Project
-from database.models.user_model import User
 from database.models.module_model import Module
+from database.models.project_model import Project
+from database.models.sensor_reading_model import SensorReading
+from database.models.user_model import User
 from database.repositories.base_repository import BaseRepository
-from exceptions.user_exceptions import UserNotFoundException
-from utils.hash import hash_password
+from exceptions.user_exceptions import UserConflictException, UserNotFoundException
 
-class UserRepository(BaseRepository):
+class UserRepository(
+    BaseRepository[
+        User,
+        UserResponse,
+        CreateUserRequest,
+        None
+    ]
+    ):
     "Repository for user CRUD operations."
 
-    def __init__(self, user_model: User):
-        self.user_model = user_model
+    def __init__(self):
+        super().__init__(User)
 
-    async def get_by_id(self, user_id: PydanticObjectId, obj_id: PydanticObjectId):
-        raise NotImplementedError("get_by_id method is not implemented in UserRepository class.")
-    
-    async def get_by_login(self, login: str) -> LoginUserResponse:
+    async def get(self, login: str) -> UserResponse:
 
-        user = await self.user_model.find_one(
-            {"$or": [{"username": login}, {"email": login} ]}
+        user = await self.model.find_one(
+            {
+                "$or": {
+                    {
+                        "email": login
+                    },
+                    {
+                        "username": login
+                    }
+                }
+            }
         )
 
         if not user:
-            return None
+            raise UserNotFoundException()
+        
+        return UserResponse(
+            id=str(user.id),
+            username=user.username,
+            email=user.email
+        )
+    
+    async def get_user_login(self, login: str) -> LoginUserResponse:
+
+        user = await self.model.find_one(
+        {
+            "$or": [
+                {"email": login},
+                {"username": login}
+            ]
+        }
+    )
+
+        if not user:
+            raise UserNotFoundException()
         
         return LoginUserResponse(
             id=str(user.id),
@@ -34,74 +67,86 @@ class UserRepository(BaseRepository):
             password=user.password
         )
 
-    async def get_by_email(self, email: str) -> LoginUserResponse:
-
-        user = await self.user_model.find_one(
-            self.user_model.email == email
-        )
-
-        if not user:
-            return None
-
-        return LoginUserResponse(
-            id=str(user.id),
-            username=user.username,
-            email=user.email,
-            password=user.password
-        )
     
-    async def get_by_username(self, username: str) -> LoginUserResponse:
-
-        user = await self.user_model.find_one(
-            self.user_model.username == username
-        )
-
-        if not user:
-            return None
-
-        return LoginUserResponse(
-            id=str(user.id),
-            username=user.username,
-            email=user.email,
-            password=user.password
-        )
-    
-    async def create(self, user_id: PydanticObjectId, create_user_request: CreateUserRequest) -> UserResponse:
-        pass
+    async def get_all(self):
+        raise NotImplementedError("method get_all() not implemented for Users.")
     
     async def create(self, create_user_request: CreateUserRequest) -> UserResponse:
+        
+        user = await self.model.find_one(
+            {
+                "$or": [
+                    {
+                        "email": create_user_request.email
+                    },
+                    {
+                        "username": create_user_request.username
+                    }
+                ]
+            }
+        )
 
-        user = self.user_model(
+        if user:
+            raise UserConflictException()
+        
+        new_user = User(
             username=create_user_request.username,
             email=create_user_request.email,
-            password=hash_password(create_user_request.password),
+            password=create_user_request.password,
+            projects=[]
         )
-        await user.insert()
+        await new_user.insert()
+
         return UserResponse(
-            id=str(user.id),
-            username=user.username,
-            email=user.email
+            id=str(new_user.id),
+            username=new_user.username,
+            email=new_user.email
         )
-
-    async def update(self, user_id, obj_id, update_data):
-        raise NotImplementedError("update method is not implemented in UserRepository class.")
     
-    async def delete(self, user_id, obj_id):
-        pass
-
+    async def update(self, object_id, update_object_data):
+        raise NotImplementedError("method update() not implemented for Users.")
+    
     async def delete(self, user_id: PydanticObjectId):
 
-        user = await self.user_model.find_one(
-            self.user_model.id == user_id
-        )
+        user = await self.model.find_one(self.model.id == user_id)
 
         if not user:
             raise UserNotFoundException()
 
-        await Project.find(Project.user_id == user_id).delete()
-        await Module.find(Module.user_id == user_id).delete()
-        await Device.find(Device.user_id == user_id).delete()
+        if await Project.find(Project.user_id == user_id).count() > 0:
+            await Project.delete_many(Project.user_id == user_id)
+
+            if await Module.find(Module.user_id == user_id).count() > 0:
+                await Module.delete_many(Module.user_id == user_id)
+
+                if await Device.find(Device.user_id == user_id).count() > 0:
+                    await Device.delete_many(Device.user_id == user_id)
+
+                    if await SensorReading.find(SensorReading.user_id == user_id).count() > 0:
+                        await SensorReading.delete_many(SensorReading.user_id == user_id)
+
         await user.delete()
+
+    async def exists(self, username: str, email: str) -> bool:
+        
+        user = await self.model.find_one(
+            {
+                "$or": {
+                    {
+                        "username": username
+                    },
+                    {
+                        "email": email
+                    }
+                }
+            }
+        )
+
+        if user:
+            return True
+        
+        return False
+    
 
 
 

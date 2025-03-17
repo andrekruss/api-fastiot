@@ -23,7 +23,7 @@ async def test_create_user(test_db):
     assert response.json()["email"] == email
 
 @pytest.mark.asyncio
-async def test_me(test_token):
+async def test_delete_user(test_token):
 
     headers = {
         "Authorization": f"Bearer {test_token['access_token']}"
@@ -33,7 +33,6 @@ async def test_me(test_token):
         transport=ASGITransport(app=app),
         base_url="http://test"
     ) as ac:
-        response = await ac.get("/users/me", headers=headers)
-
-    assert response.status_code == 200
-
+        response = await ac.delete("/users/delete", headers=headers)
+    
+    assert response.status_code == 204

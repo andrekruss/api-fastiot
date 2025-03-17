@@ -5,7 +5,7 @@ from database.models.user_model import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     email = decode_jwt_token(token)
     user = await User.find_one({"email": email})
     return user

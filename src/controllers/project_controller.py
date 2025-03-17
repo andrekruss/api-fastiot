@@ -13,7 +13,7 @@ from exceptions.project_exceptions import ProjectNotFoundException, UpdateProjec
 from utils.auth import get_current_user
 from utils.helper_functions import validate_object_id
 
-project_repository = ProjectRepository(Project)
+project_repository = ProjectRepository()
 project_router = APIRouter(prefix="/projects", tags=["projects"])
 
 @project_router.post("/create", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)
@@ -27,7 +27,7 @@ async def get_project(project_id: str, user: User = Depends(get_current_user)):
 
     try:
         project_object_id = validate_object_id(project_id)
-        project = await project_repository.get_by_id(user.id, project_object_id)
+        project = await project_repository.get(user.id, project_object_id)
         return project
     except ProjectNotFoundException as err:
         if not project:
@@ -44,7 +44,7 @@ async def get_project(project_id: str, user: User = Depends(get_current_user)):
 
 @project_router.get("/list", status_code=status.HTTP_200_OK, response_model=List[ProjectResponse])
 async def list_projects(user: User = Depends(get_current_user)):
-    return await project_repository.list(user.id)
+    return await project_repository.get_all(user.id)
 
 @project_router.delete("/delete/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete(project_id: str, user: User = Depends(get_current_user)):

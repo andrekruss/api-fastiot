@@ -1,21 +1,25 @@
 from typing import List
-from beanie import Document, PydanticObjectId
+from beanie import PydanticObjectId
 
 from api_requests.device_requests import CreateDeviceRequest
 from api_responses.device_responses import DeviceResponse
 from database.models.device_model import Device
 from database.models.module_model import Module
+from database.models.sensor_reading_model import SensorReading
 from database.repositories.base_repository import BaseRepository
 from exceptions.device_exceptions import DeviceNotFoundException
 from exceptions.module_exceptions import ModuleNotFoundException
 
-class DeviceRepository(BaseRepository):
+class DeviceRepository(
+    BaseRepository[
+        Device,
+        DeviceResponse,
+        CreateDeviceRequest,
+        None
+    ]):
 
-    def __init__(self, device_model: Device):
-        self.device_model = device_model
-
-    async def create(self, user_id, obj_data):
-        pass
+    def __init__(self):
+        super().__init__(Device)
 
     async def create(
             self, 
@@ -32,7 +36,7 @@ class DeviceRepository(BaseRepository):
         if not module:
             raise ModuleNotFoundException("Module not found or unauthorized")
         
-        device = self.device_model(
+        device = self.model(
             module_id=module_id,
             user_id=user_id,
             name=create_device_request.name,
@@ -53,10 +57,7 @@ class DeviceRepository(BaseRepository):
             data_types=device.data_types
         )
 
-    async def get_by_id(self, user_id, obj_id):
-        pass
-
-    async def get_by_id(
+    async def get(
             self,
             user_id: PydanticObjectId,
             module_id: PydanticObjectId,
@@ -71,9 +72,9 @@ class DeviceRepository(BaseRepository):
         if not module:
             raise ModuleNotFoundException("Module not found or unauthorized")
         
-        device = await self.device_model.find_one(
-            self.device_model.user_id == user_id,
-            self.device_model.id == device_id
+        device = await self.model.find_one(
+            self.model.user_id == user_id,
+            self.model.id == device_id
         )
 
         if not device or device.id not in module.devices:
@@ -87,7 +88,7 @@ class DeviceRepository(BaseRepository):
             data_types=device.data_types
         )
     
-    async def list(
+    async def get_all(
         self,
         user_id: PydanticObjectId,
         module_id: PydanticObjectId
@@ -101,9 +102,9 @@ class DeviceRepository(BaseRepository):
         if not module:
             raise ModuleNotFoundException("Module not found or unauthorized")
         
-        devices = await self.device_model.find(
-            self.device_model.user_id == user_id,
-            self.device_model.module_id == module_id
+        devices = await self.model.find(
+            self.model.user_id == user_id,
+            self.model.module_id == module_id
         ).to_list()
 
         devices_response = [
@@ -128,6 +129,7 @@ class DeviceRepository(BaseRepository):
             module_id: PydanticObjectId,
             device_id: PydanticObjectId
     ):
+    
         
         module = await Module.find_one(
             Module.user_id == user_id,
@@ -140,14 +142,44 @@ class DeviceRepository(BaseRepository):
         if device_id not in module.devices:
             raise DeviceNotFoundException("Device belongs to a different module.")
         
-        device = await self.device_model.find_one(
-            self.device_model.user_id == user_id,
-            self.device_model.id == module_id
+        device = await self.model.find_one(
+            self.model.user_id == user_id,
+            self.model.id == device_id
         )
 
         if not device:
-            raise DeviceNotFoundException("Device was not found.")
+            raise DeviceNotFoundException()
         
+        await SensorReading.delete_many(SensorReading.device_id == device_id)
         await device.delete()
-        module.devices.remove(device.id)
-        await module.save()
+
+    async def exists(self, device_id: PydanticObjectId) -> bool:
+        
+        device = await self.model.find_one(
+            self.model.id == device_id
+        )
+
+        if device:
+            return True
+        
+        return False
+    
+    async def delete_module_devices(self, module_id: PydanticObjectId):
+
+        await self.model.delete_many(
+            self.model.module_id == module_id
+        )
+
+    async def get_by_id(self, device_id: PydanticObjectId) -> DeviceResponse:
+        
+        device = await self.model.find_one(
+            self.model.id == device_id
+        )
+
+        return DeviceResponse(
+            id=str(device.id),
+            name=device.name,
+            description=device.description,
+            device_type=device.device_type,
+            data_types=device.data_types
+        )

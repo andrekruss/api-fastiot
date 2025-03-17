@@ -20,21 +20,21 @@ logging.basicConfig(level=logging.DEBUG)
 async def test_db():
     client = AsyncIOMotorClient(TEST_DATABASE_URL)
     database = client[TEST_DATABASE_NAME]
-    logging.debug("Inicializando Beanie com os modelos...")
+    logging.debug("Initializing Beanie...")
 
     await init_beanie(
         database=database,
         document_models=[User, Project, Module]
     )
 
-    yield database
+    try:
+        yield database  
+    finally:
+        collections = await database.list_collection_names()  
+        for collection in collections:
+            await database[collection].delete_many({})  
 
-    collections = await database.list_collection_names()  
-    for collection in collections:
-        collection_instance = database[collection]
-        await collection_instance.delete_many({})  
-
-    client.close()
+        client.close()
 
 @pytest_asyncio.fixture(scope="function")
 async def test_user(test_db):
@@ -72,7 +72,7 @@ async def test_token(test_db, test_user):
         return {
             "access_token": jwt_token
         }
-    
+     
 @pytest_asyncio.fixture(scope="function")
 async def test_project(test_user):
 

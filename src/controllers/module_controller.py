@@ -1,20 +1,17 @@
 from typing import List
-from beanie import PydanticObjectId
-from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, Response, status, HTTPException
 
 from api_requests.module_requests import CreateModuleRequest, PatchModuleRequest
 from api_responses.module_responses import ModuleResponse
 from database.models.module_model import Module
-from database.models.project_model import Project
 from database.models.user_model import User
 from database.repositories.module_repository import ModuleRepository
-from exceptions.module_exceptions import ModuleNotFoundException, UpdateModuleException
+from exceptions.module_exceptions import ModuleNotFoundException, BadUpdateDataException
 from exceptions.project_exceptions import ProjectNotFoundException
 from utils.auth import get_current_user
 from utils.helper_functions import validate_object_id
 
-module_repository = ModuleRepository(Module)
+module_repository = ModuleRepository()
 module_router = APIRouter(prefix="/modules", tags=["modules"])
 
 @module_router.post("/create/{project_id}", status_code=status.HTTP_201_CREATED, response_model=ModuleResponse)
@@ -123,7 +120,7 @@ async def patch_module(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(err)
         )
-    except UpdateModuleException as err:
+    except BadUpdateDataException as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(err)
